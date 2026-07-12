@@ -1,318 +1,275 @@
-/* ============================================
-   PORTFOLIO — MAIN SCRIPT
-   ============================================ */
-
-(function () {
-    'use strict';
-
-    // ---- State ----
-    let currentSlide = 0;
-    const totalSlides = 3;
-    let isTransitioning = false;
-    let touchStartY = 0;
-    let touchEndY = 0;
-
-    // ---- DOM refs ----
-    const slides = document.querySelectorAll('.slide');
-    const dots = document.querySelectorAll('.nav-dot');
-    const overlay = document.getElementById('transitionOverlay');
-    const scrollIndicator = document.getElementById('scrollIndicator');
-    const btnExplore = document.getElementById('btnExplore');
-    const canvas = document.getElementById('particleCanvas');
-    const ctx = canvas.getContext('2d');
-
-    // ============================================
-    //  PARTICLE SYSTEM
-    // ============================================
-    const particles = [];
-    const PARTICLE_COUNT = 80;
-    const connectionDistance = 120;
-    let mouse = { x: -1000, y: -1000 };
-
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-
-    class Particle {
-        constructor() {
-            this.reset();
-        }
-
-        reset() {
-            this.x = Math.random() * canvas.width;
-            this.y = Math.random() * canvas.height;
-            this.size = Math.random() * 1.8 + 0.5;
-            this.speedX = (Math.random() - 0.5) * 0.4;
-            this.speedY = (Math.random() - 0.5) * 0.4;
-            this.opacity = Math.random() * 0.4 + 0.1;
-        }
-
-        update() {
-            this.x += this.speedX;
-            this.y += this.speedY;
-
-            // Mouse repulsion
-            const dx = this.x - mouse.x;
-            const dy = this.y - mouse.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < 150) {
-                const force = (150 - dist) / 150;
-                this.x += (dx / dist) * force * 1.5;
-                this.y += (dy / dist) * force * 1.5;
-            }
-
-            // Wrap around
-            if (this.x < -10) this.x = canvas.width + 10;
-            if (this.x > canvas.width + 10) this.x = -10;
-            if (this.y < -10) this.y = canvas.height + 10;
-            if (this.y > canvas.height + 10) this.y = -10;
-        }
-
-        draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(77, 124, 255, ${this.opacity})`;
-            ctx.fill();
-        }
-    }
-
-    function initParticles() {
-        particles.length = 0;
-        for (let i = 0; i < PARTICLE_COUNT; i++) {
-            particles.push(new Particle());
-        }
-    }
-
-    function drawConnections() {
-        for (let i = 0; i < particles.length; i++) {
-            for (let j = i + 1; j < particles.length; j++) {
-                const dx = particles[i].x - particles[j].x;
-                const dy = particles[i].y - particles[j].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < connectionDistance) {
-                    const opacity = (1 - dist / connectionDistance) * 0.12;
-                    ctx.beginPath();
-                    ctx.moveTo(particles[i].x, particles[i].y);
-                    ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.strokeStyle = `rgba(77, 124, 255, ${opacity})`;
-                    ctx.lineWidth = 0.5;
-                    ctx.stroke();
+document.addEventListener('DOMContentLoaded', () => {
+    const helloScreen = document.getElementById('hello-screen');
+    const mainContent = document.getElementById('main-content');
+    const typingTextEl = document.getElementById('helloTypingText');
+    
+    if (helloScreen) {
+        // Disable scroll/interactions while hello screen is visible
+        document.body.style.overflow = 'hidden';
+        window.scrollTo(0, 0);
+        
+        // Typing animation logic
+        if (typingTextEl) {
+            const textToType = "Я IT-специалист. У меня 5+ лет опыта.<br><br>Это сайт моей Студии. Помогаю бизнесу с цифровыми решениями.<br><br>Ознакомьтесь с сайтом, чтобы узнать подробнее!";
+            let i = 0;
+            const typingSpeed = 60; // ms per char (slower)
+            
+            // Fade in second video just before typing starts
+            setTimeout(() => {
+                const bgVideo2 = document.getElementById('bgVideo2');
+                if (bgVideo2) {
+                    bgVideo2.currentTime = 0;
+                    bgVideo2.play();
+                    bgVideo2.style.opacity = '1';
                 }
-            }
+            }, 6500);
+
+            setTimeout(() => {
+                function typeWriter() {
+                    if (i < textToType.length) {
+                        if (textToType.charAt(i) === '<') {
+                            let tag = '';
+                            while(textToType.charAt(i) !== '>' && i < textToType.length) {
+                                tag += textToType.charAt(i);
+                                i++;
+                            }
+                            tag += '>';
+                            typingTextEl.innerHTML += tag;
+                            i++;
+                        } else {
+                            typingTextEl.innerHTML += textToType.charAt(i);
+                            i++;
+                        }
+                        setTimeout(typeWriter, typingSpeed);
+                    }
+                }
+                typeWriter();
+            }, 6800); // Start earlier, right as block fades in
         }
-    }
-
-    function animateParticles() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-            p.update();
-            p.draw();
-        });
-        drawConnections();
-        requestAnimationFrame(animateParticles);
-    }
-
-    // ============================================
-    //  TYPING EFFECT
-    // ============================================
-    const phrases = [
-        'IT-специалист • Автоматизация • AI/LLM',
-        'Node.js • PostgreSQL • Telegram Bots',
-        '16 лет — и уже Middle+ уровень',
-    ];
-    let phraseIndex = 0;
-    let charIndex = 0;
-    let isDeleting = false;
-    const typingEl = document.getElementById('typingText');
-
-    function typeEffect() {
-        const current = phrases[phraseIndex];
-
-        if (!isDeleting) {
-            typingEl.textContent = current.substring(0, charIndex + 1);
-            charIndex++;
-            if (charIndex === current.length) {
-                isDeleting = true;
-                setTimeout(typeEffect, 2200);
-                return;
+        
+        // Animate text out before revealing the site
+        setTimeout(() => {
+            const typingContainer = document.getElementById('helloTypingContainer');
+            if (typingContainer) {
+                typingContainer.classList.add('fade-out-text');
             }
-            setTimeout(typeEffect, 55);
-        } else {
-            typingEl.textContent = current.substring(0, charIndex - 1);
-            charIndex--;
-            if (charIndex === 0) {
-                isDeleting = false;
-                phraseIndex = (phraseIndex + 1) % phrases.length;
-                setTimeout(typeEffect, 400);
-                return;
-            }
-            setTimeout(typeEffect, 30);
-        }
-    }
-
-    // ============================================
-    //  SLIDE TRANSITIONS
-    // ============================================
-    function goToSlide(index) {
-        if (isTransitioning || index === currentSlide || index < 0 || index >= totalSlides) return;
-        isTransitioning = true;
-
-        const direction = index > currentSlide ? 'up' : 'down'; // scroll direction
-        const oldSlide = slides[currentSlide];
-        const newSlide = slides[index];
-
-        // Update scroll indicator
-        if (scrollIndicator) {
-            scrollIndicator.classList.toggle('hidden', index > 0);
-        }
-
-        // Phase 1: Exit current slide
-        oldSlide.classList.add(direction === 'up' ? 'slide--exit-up' : 'slide--exit-down');
-
-        // Overlay flash
-        overlay.style.transition = 'opacity 0.35s ease-in';
-        overlay.style.opacity = '0.6';
+        }, 16000);
 
         setTimeout(() => {
-            // Hide old slide
-            oldSlide.classList.remove('slide--active', 'slide--exit-up', 'slide--exit-down');
-            oldSlide.style.opacity = '0';
-            oldSlide.style.visibility = 'hidden';
+            helloScreen.classList.add('hidden');
+            
+            // Show main content with cinematic reveal
+            if (mainContent) {
+                mainContent.classList.add('visible');
+            }
 
-            // Show new slide
-            newSlide.style.opacity = '1';
-            newSlide.style.visibility = 'visible';
-            newSlide.classList.add('slide--active');
-            newSlide.classList.add(direction === 'up' ? 'slide--enter-up' : 'slide--enter-down');
+            // Fade to third video for the main site + stylish blur overlay
+            const bgVideo3 = document.getElementById('bgVideo3');
+            const bgVideo3b = document.getElementById('bgVideo3b');
+            const video3Overlay = document.getElementById('video3Overlay');
+            if (bgVideo3 && bgVideo3b) {
+                bgVideo3.currentTime = 0;
+                bgVideo3.play();
+                bgVideo3.style.opacity = '1';
+                
+                let activeVideo = 1;
+                const LOOP_TIME = 5.3; // Loop at 5.3 seconds
+                const CROSSFADE_DURATION = 1.0; // 1 second crossfade
+                const TRIGGER_TIME = LOOP_TIME - CROSSFADE_DURATION;
+                
+                const checkLoop = () => {
+                    if (activeVideo === 1 && bgVideo3.currentTime >= TRIGGER_TIME) {
+                        activeVideo = 2;
+                        bgVideo3b.currentTime = 0;
+                        bgVideo3b.play();
+                        bgVideo3b.style.opacity = '1';
+                        bgVideo3.style.opacity = '0';
+                    } else if (activeVideo === 2 && bgVideo3b.currentTime >= TRIGGER_TIME) {
+                        activeVideo = 1;
+                        bgVideo3.currentTime = 0;
+                        bgVideo3.play();
+                        bgVideo3.style.opacity = '1';
+                        bgVideo3b.style.opacity = '0';
+                    }
+                };
 
-            // Fade out overlay
-            overlay.style.transition = 'opacity 0.5s ease-out';
-            overlay.style.opacity = '0';
+                bgVideo3.addEventListener('timeupdate', checkLoop);
+                bgVideo3b.addEventListener('timeupdate', checkLoop);
 
-            // Update nav dots
-            dots.forEach(d => d.classList.remove('active'));
-            dots[index].classList.add('active');
+                if (video3Overlay) video3Overlay.style.opacity = '1';
+            }
+            
+            // Re-enable scroll for the main block
+            document.body.style.overflow = 'auto';
+            
+            // Start dynamic notifications
+            if (mainContent) {
+                setTimeout(spawnNotification, 2000);
+                setInterval(spawnNotification, 10000);
+            }
+            
+            // Smooth background music fade-in
+            const bgMusic = document.getElementById('bgMusic');
+            const soundIconOn = document.getElementById('soundIconOn');
+            const soundIconOff = document.getElementById('soundIconOff');
+            if (bgMusic) {
+                const playAudioWithFade = () => {
+                    bgMusic.volume = 0;
+                    const playPromise = bgMusic.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            if (soundIconOn && soundIconOff) {
+                                soundIconOn.style.display = 'block';
+                                soundIconOff.style.display = 'none';
+                            }
+                            let vol = 0;
+                            const fadeInterval = setInterval(() => {
+                                if (vol < 0.95) {
+                                    vol += 0.05;
+                                    bgMusic.volume = vol;
+                                } else {
+                                    bgMusic.volume = 1;
+                                    clearInterval(fadeInterval);
+                                }
+                            }, 150);
+                        }).catch(err => {
+                            console.log('Autoplay prevented, waiting for click', err);
+                            // Only click, keydown, touchstart are valid user activations for audio
+                            const startOnInteract = () => {
+                                bgMusic.volume = 0;
+                                bgMusic.play().then(() => {
+                                    if (soundIconOn && soundIconOff) {
+                                        soundIconOn.style.display = 'block';
+                                        soundIconOff.style.display = 'none';
+                                    }
+                                    let vol = 0;
+                                    const fadeInterval = setInterval(() => {
+                                        if (vol < 0.95) {
+                                            vol += 0.05;
+                                            bgMusic.volume = vol;
+                                        } else {
+                                            bgMusic.volume = 1;
+                                            clearInterval(fadeInterval);
+                                        }
+                                    }, 150);
+                                }).catch(e => console.log(e));
+                                
+                                ['click', 'touchstart', 'keydown'].forEach(evt => 
+                                    document.removeEventListener(evt, startOnInteract)
+                                );
+                            };
+                            ['click', 'touchstart', 'keydown'].forEach(evt => 
+                                document.addEventListener(evt, startOnInteract)
+                            );
+                        });
+                    }
+                };
+                playAudioWithFade();
+            }
 
-            currentSlide = index;
-
-            // Cleanup
+            // Wait for fade out to remove from DOM
             setTimeout(() => {
-                newSlide.classList.remove('slide--enter-up', 'slide--enter-down');
-                isTransitioning = false;
-            }, 700);
-        }, 400);
+                helloScreen.style.display = 'none';
+            }, 2000);
+        }, 17500); // 17.5 seconds total before revealing site
     }
 
-    function nextSlide() {
-        goToSlide(currentSlide + 1);
+    // Dynamic Notification System
+    const notifyData = [
+        { title: "Seacode Studio", body: "Вау! Так можно было?", color: "notify-blue" },
+        { title: "Автоматизация", body: "Работает без границ", color: "notify-coral" },
+        { title: "Ваш бизнес", body: "Полный контроль 24/7", color: "notify-amber" },
+        { title: "Процессы", body: "Ускорены в 3 раза", color: "notify-teal" },
+        { title: "Конверсия", body: "+40% за первый месяц", color: "notify-blue" }
+    ];
+
+    function spawnNotification() {
+        const data = notifyData[Math.floor(Math.random() * notifyData.length)];
+        
+        const popup = document.createElement('div');
+        popup.className = `notify-popup ${data.color}`;
+
+        // Icon
+        const icon = document.createElement('div');
+        icon.className = 'notify-icon';
+        const iconImg = document.createElement('img');
+        iconImg.src = 'data/notify.png';
+        icon.appendChild(iconImg);
+        popup.appendChild(icon);
+
+        // Text block
+        const textBlock = document.createElement('div');
+        textBlock.className = 'notify-text';
+
+        const title = document.createElement('div');
+        title.className = 'notify-title';
+        title.innerText = data.title;
+        textBlock.appendChild(title);
+
+        const body = document.createElement('div');
+        body.className = 'notify-body';
+        body.innerText = data.body;
+        textBlock.appendChild(body);
+
+        popup.appendChild(textBlock);
+
+        // Time
+        const time = document.createElement('div');
+        time.className = 'notify-time';
+        time.innerText = 'сейчас';
+        popup.appendChild(time);
+
+        // Progress
+        const progress = document.createElement('div');
+        progress.className = 'notify-progress';
+        progress.style.animationDuration = '6s';
+        popup.appendChild(progress);
+
+        // Position — right side, random height
+        const positions = [
+            { top: '120px', right: '30px' },
+            { top: '35%', right: '35px' },
+            { bottom: '25%', right: '30px' },
+            { bottom: '80px', right: '40px' }
+        ];
+        const pos = positions[Math.floor(Math.random() * positions.length)];
+        if (pos.top) popup.style.top = pos.top;
+        if (pos.bottom) popup.style.bottom = pos.bottom;
+        popup.style.right = pos.right;
+
+        document.body.appendChild(popup);
+
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                popup.classList.add('show');
+            });
+        });
+
+        setTimeout(() => {
+            popup.classList.remove('show');
+            popup.classList.add('hide');
+            setTimeout(() => popup.remove(), 600);
+        }, 6000);
     }
 
-    function prevSlide() {
-        goToSlide(currentSlide - 1);
+    // Audio Logic
+    const soundToggleBtn = document.getElementById('soundToggle');
+    const bgMusic = document.getElementById('bgMusic');
+    const soundIconOn = document.getElementById('soundIconOn');
+    const soundIconOff = document.getElementById('soundIconOff');
+
+    if (soundToggleBtn && bgMusic) {
+        soundToggleBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // prevent triggering document click
+            if (bgMusic.paused) {
+                bgMusic.play();
+                soundIconOn.style.display = 'block';
+                soundIconOff.style.display = 'none';
+            } else {
+                bgMusic.pause();
+                soundIconOn.style.display = 'none';
+                soundIconOff.style.display = 'block';
+            }
+        });
     }
-
-    // ============================================
-    //  EVENT LISTENERS
-    // ============================================
-
-    // Mouse wheel
-    let wheelTimeout;
-    window.addEventListener('wheel', (e) => {
-        if (wheelTimeout) return;
-        wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 900);
-
-        if (e.deltaY > 30) nextSlide();
-        else if (e.deltaY < -30) prevSlide();
-    }, { passive: true });
-
-    // Keyboard
-    window.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
-            e.preventDefault();
-            nextSlide();
-        }
-        if (e.key === 'ArrowUp' || e.key === 'PageUp') {
-            e.preventDefault();
-            prevSlide();
-        }
-    });
-
-    // Touch events
-    window.addEventListener('touchstart', (e) => {
-        touchStartY = e.changedTouches[0].screenY;
-    }, { passive: true });
-
-    window.addEventListener('touchend', (e) => {
-        touchEndY = e.changedTouches[0].screenY;
-        const diff = touchStartY - touchEndY;
-        if (Math.abs(diff) > 60) {
-            if (diff > 0) nextSlide();
-            else prevSlide();
-        }
-    }, { passive: true });
-
-    // Nav dots
-    dots.forEach(dot => {
-        dot.addEventListener('click', () => {
-            const target = parseInt(dot.dataset.slide, 10);
-            goToSlide(target);
-        });
-    });
-
-    // Explore button
-    if (btnExplore) {
-        btnExplore.addEventListener('click', () => nextSlide());
-    }
-
-    // Mouse tracking for particles & card glow
-    window.addEventListener('mousemove', (e) => {
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;
-
-        // Card spotlight effect
-        document.querySelectorAll('.contact-card').forEach(card => {
-            const rect = card.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            card.style.setProperty('--mouse-x', x + '%');
-            card.style.setProperty('--mouse-y', y + '%');
-        });
-    });
-
-    // Window resize
-    window.addEventListener('resize', () => {
-        resizeCanvas();
-    });
-
-    // ============================================
-    //  STACK CARD TILT EFFECT
-    // ============================================
-    document.querySelectorAll('[data-tilt]').forEach(card => {
-        card.addEventListener('mousemove', (e) => {
-            const rect = card.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            const centerX = rect.width / 2;
-            const centerY = rect.height / 2;
-            const rotateX = ((y - centerY) / centerY) * -8;
-            const rotateY = ((x - centerX) / centerX) * 8;
-            card.style.transform = `translateY(-4px) perspective(600px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-        });
-
-        card.addEventListener('mouseleave', () => {
-            card.style.transform = '';
-        });
-    });
-
-    // ============================================
-    //  INIT
-    // ============================================
-    resizeCanvas();
-    initParticles();
-    animateParticles();
-
-    // Start typing after welcome animation
-    setTimeout(typeEffect, 1800);
-
-})();
+});

@@ -272,4 +272,33 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    // ============================================
+    // IPHONE HERO INTERACTION
+    // ============================================
+    const iosHelloScreen = document.getElementById('iosHelloScreen');
+    if (iosHelloScreen) {
+        iosHelloScreen.addEventListener('click', () => {
+            iosHelloScreen.classList.add('hidden');
+        });
+    }
+
+    const launchAppBtn = document.getElementById('launchVideoApp');
+    const videoAppScreen = document.getElementById('videoAppScreen');
+    const closeAppBtn = document.getElementById('closeVideoApp');
+    const heroVideoContainer = document.getElementById('heroVideoContainer');
+
+    const vkIframeHTML = `<iframe src="https://vk.ru/video_ext.php?oid=-240296655&id=456239019&hash=6f7cdad885e0f647&autoplay=1" width="100%" height="100%" frameborder="0" allowfullscreen="1" style="background-color: #000; position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 40px;" allow="autoplay; encrypted-media; fullscreen; picture-in-picture"></iframe>`;
+
+    if (launchAppBtn && videoAppScreen && closeAppBtn && heroVideoContainer) {
+        launchAppBtn.addEventListener('click', () => {
+            videoAppScreen.classList.add('active');
+            heroVideoContainer.innerHTML = vkIframeHTML;
+        });
+
+        closeAppBtn.addEventListener('click', () => {
+            videoAppScreen.classList.remove('active');
+            heroVideoContainer.innerHTML = ''; // Stop video by removing iframe
+        });
+    }
+
 });

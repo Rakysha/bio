@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sea-code.ru/sitemap.xml

@@ -1040,10 +1040,11 @@ button {
 }
 
 .hello-text-1 { 
-    font-size: clamp(1.8rem, 6vw, 4rem); 
+    font-size: clamp(1.4rem, 6vw, 4rem); 
     font-weight: 800; 
     letter-spacing: 2px; 
     animation-delay: 1s; 
+    white-space: nowrap;
 }
 
 /* Seacode Logo */
@@ -1051,18 +1052,18 @@ button {
     animation: helloSeq 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     animation-delay: 1.3s;
     top: 65% !important;
-    max-width: 95%;
-    width: clamp(500px, 90vw, 1400px); /* Сделал еще больше */
+    max-width: 90vw;
+    width: clamp(260px, 80vw, 1400px); /* Исправлен баг с шириной 500px на мобильных */
     height: auto;
     object-fit: contain;
 }
 .hello-text-2 { 
-    font-size: clamp(1.4rem, 5vw, 3rem); 
+    font-size: clamp(1.2rem, 5vw, 3rem); 
     font-weight: 600; 
     animation-delay: 3.5s; 
 }
 .hello-text-3 { 
-    font-size: clamp(1.1rem, 4vw, 2.2rem); 
+    font-size: clamp(1rem, 4vw, 2.2rem); 
     font-weight: 500; 
     color: #ffffff;
     animation: helloSeqStay 1s ease-in-out 6s forwards;
